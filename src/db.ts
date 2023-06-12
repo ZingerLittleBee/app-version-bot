@@ -1,32 +1,16 @@
 import { DB } from "https://deno.land/x/sqlite/mod.ts";
-
-interface AppInfo {
-    id: number;
-    appId: string;
-    url: string;
-    desc: string;
-    createTime: Date;
-    updateTime: Date;
-}
-
-interface AnalyzeRecord {
-    id: number;
-    name: string;
-    version: string;
-    desc?: string;
-    createTime: Date;
-    updateTime: Date;
-    appId: string;
-}
+import type {AppInfo, AnalyzeRecord, Task} from './interface.ts'
 
 class DBManager {
     private db: DB;
-    constructor() {
-        this.db = this.open();
+
+    // dbFile for test
+    constructor(dbFile?: string) {
+        this.db = this.open(dbFile);
     }
 
-    open(): DB {
-        const db = new DB("app-version.db");
+    open(dbFile?: string): DB {
+        const db = new DB(dbFile ?? "app-version.db");
         // Open a database
         db.execute(`
 CREATE TABLE IF NOT EXISTS app_info
@@ -56,6 +40,22 @@ CREATE TABLE IF NOT EXISTS analyze_record
             on update cascade on delete cascade
 )
     `);
+
+        db.execute(`
+CREATE TABLE IF NOT EXISTS task
+(
+    id          integer primary key autoincrement,
+    chatId      TEXT not null,
+    interval    integer default 360,
+    create_time integer default CURRENT_TIMESTAMP,
+    update_time integer default CURRENT_TIMESTAMP,
+    app_id      TEXT not null
+        constraint task_app_info_app_id_fk
+            references app_info (app_id)
+            on update cascade on delete cascade
+)
+        `)
+
         return db;
     }
 
@@ -139,6 +139,55 @@ CREATE TABLE IF NOT EXISTS analyze_record
 
     removeAnalyzeRecord(appId: string) {
         this.db.query("DELETE FROM analyze_record WHERE app_id = ?", [appId]);
+    }
+
+    listTask(): Task[] {
+        const rows = this.db.query("SELECT * FROM task");
+        const result = []
+        for (let row of rows) {
+            const [ id, chatId, interval, create_time, update_time, app_id ] = row as any;
+            result.push({
+                id,
+                chatId,
+                interval,
+                createTime: new Date(create_time),
+                updateTime: new Date(update_time),
+                appId: app_id
+            } as Task)
+        }
+        return result
+    }
+
+    getTaskByChatId(chatId: string): Task[] {
+        const rows = this.db.query("SELECT * FROM task WHERE chatId = ?", [chatId]);
+        const result = []
+        for (let row of rows) {
+            const [ id, chatId, interval, create_time, update_time, app_id ] = row as any;
+            result.push({
+                id,
+                chatId,
+                interval,
+                createTime: new Date(create_time),
+                updateTime: new Date(update_time),
+                appId: app_id
+            } as Task)
+        }
+        return result
+    }
+
+    addTask(task: Task) {
+        this.db.query("INSERT INTO task (chatId, interval, app_id) VALUES (?, ?, ?)", [
+            task.chatId, task.interval, task.appId
+        ]);
+    }
+
+
+    removeTask(id: number) {
+        this.db.query("DELETE FROM task WHERE id = ?", [id]);
+    }
+
+    removeTaskByChatId(chatId: string) {
+        this.db.query("DELETE FROM task WHERE chatId = ?", [chatId]);
     }
 
     close() {
