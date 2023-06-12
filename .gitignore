@@ -1,0 +1,7 @@
+.env
+app-version.db
+
+# IDE
+.idea
+.vscode
+.history
