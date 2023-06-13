@@ -30,9 +30,10 @@
     "exclude": ["src/testdata/", "data/fixtures/**/*.ts"]
   },
   "tasks": {
+    "start": "deno run --allow-env --allow-read --allow-write --allow-net --allow-run src/main.ts",
     "test": "deno test --allow-read --allow-write test.ts"
   },
   "imports": {
-    "std/": "https://deno.land/std@0.152.0/"
+    "std/": "https://deno.land/std@0.191.0/"
   }
 }

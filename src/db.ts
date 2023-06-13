@@ -1,4 +1,4 @@
-import { DB } from "https://deno.land/x/sqlite/mod.ts";
+import { DB } from "https://deno.land/x/sqlite@v3.7.2/mod.ts";
 import type {AppInfo, AnalyzeRecord, Task} from './interface.ts'
 
 class DBManager {
@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS app_info
 (
     id          INTEGER primary key autoincrement,
     app_id      TEXT not null unique,
-    url         TEXT not null,
+    url         TEXT not null unique,
     desc        TEXT,
     create_time INTEGER default CURRENT_TIMESTAMP,
     update_time integer default CURRENT_TIMESTAMP
@@ -62,10 +62,27 @@ CREATE TABLE IF NOT EXISTS task
     getAppInfoById(appId: string): AppInfo | null {
         const rows = this.db.query("SELECT * FROM app_info WHERE app_id = ?", [appId]);
         if (rows.length > 0) {
-            const [ id, app_id, desc, create_time, update_time ] = rows[0] as any;
+            const [ id, app_id, url, desc, create_time, update_time ] = rows[0] as any;
             return {
                 id,
                 appId: app_id,
+                url,
+                desc,
+                createTime: new Date(create_time),
+                updateTime: new Date(update_time)
+            } as AppInfo
+        }
+        return null
+    }
+
+    getAppInfoByUrl(url: string): AppInfo | null {
+        const rows = this.db.query("SELECT * FROM app_info WHERE url = ?", [url])
+        if (rows.length > 0) {
+            const [ id, app_id, url, desc, create_time, update_time ] = rows[0] as any;
+            return {
+                id,
+                appId: app_id,
+                url,
                 desc,
                 createTime: new Date(create_time),
                 updateTime: new Date(update_time)
@@ -77,7 +94,7 @@ CREATE TABLE IF NOT EXISTS task
     listAppInfo(): AppInfo[] {
         const rows = this.db.query("SELECT * FROM app_info");
         const result = []
-        for (let row of rows) {
+        for (const row of rows) {
             const [ id, app_id, desc, create_time, update_time ] = row as any;
             result.push({
                 id,
@@ -144,7 +161,7 @@ CREATE TABLE IF NOT EXISTS task
     listTask(): Task[] {
         const rows = this.db.query("SELECT * FROM task");
         const result = []
-        for (let row of rows) {
+        for (const row of rows) {
             const [ id, chatId, interval, create_time, update_time, app_id ] = row as any;
             result.push({
                 id,
@@ -161,7 +178,7 @@ CREATE TABLE IF NOT EXISTS task
     getTaskByChatId(chatId: string): Task[] {
         const rows = this.db.query("SELECT * FROM task WHERE chatId = ?", [chatId]);
         const result = []
-        for (let row of rows) {
+        for (const row of rows) {
             const [ id, chatId, interval, create_time, update_time, app_id ] = row as any;
             result.push({
                 id,
@@ -173,6 +190,35 @@ CREATE TABLE IF NOT EXISTS task
             } as Task)
         }
         return result
+    }
+
+    findAllChatIdByAppId(appId: string): string[] {
+        const rows = this.db.query("SELECT chatId FROM task WHERE app_id = ?", [appId]);
+        const result = []
+        for (const row of rows) {
+            const [ chatId ] = row as any;
+            result.push(chatId)
+        }
+        return result
+    }
+
+    findAllAppIdInTask(): string[] {
+        const rows = this.db.query("SELECT DISTINCT app_id FROM task");
+        const result = []
+        for (const row of rows) {
+            const [ app_id ] = row as any;
+            result.push(app_id)
+        }
+        return result
+    }
+
+    findUrlByAppId(appId: string): string | null { 
+        const rows = this.db.query("SELECT url FROM app_info WHERE app_id = ?", [appId]);
+        if (rows.length > 0) {
+            const [ url ] = rows[0] as any;
+            return url
+        }
+        return null
     }
 
     addTask(task: Task) {
@@ -195,5 +241,9 @@ CREATE TABLE IF NOT EXISTS task
     }
 }
 
+// just for test
 export { DBManager }
+
+export const dbManager = new DBManager()
+
 export type { AppInfo, AnalyzeRecord }

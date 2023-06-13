@@ -15,6 +15,7 @@ interface AnalyzeRecord extends Base {
     version: string;
     desc?: string;
     appId: string;
+    format: () => string;
 }
 
 interface Task extends Base {

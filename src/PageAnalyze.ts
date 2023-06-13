@@ -1,13 +1,13 @@
 import puppeteer, {devices} from "https://deno.land/x/puppeteer@16.2.0/mod.ts";
-import type { AppInfo, AnalyzeRecord } from './interface.ts'
+import type { AnalyzeRecord } from './interface.ts'
 
-export async function PageAnalyze(app: AppInfo): Promise<AnalyzeRecord> {
+export async function PageAnalyze(url: string, appId: string): Promise<AnalyzeRecord> {
     const browser = await puppeteer.launch();
     const page = await browser.newPage();
 
     await page.emulate(devices['Galaxy S8']);
 
-    await page.goto(app.url, {
+    await page.goto(url, {
         waitUntil: "networkidle0",
         timeout: 0
     });
@@ -42,6 +42,7 @@ export async function PageAnalyze(app: AppInfo): Promise<AnalyzeRecord> {
     return {
         name,
         version,
+        appId: appId,
         desc: newDesc.join('\n'),
     } as AnalyzeRecord
 }
